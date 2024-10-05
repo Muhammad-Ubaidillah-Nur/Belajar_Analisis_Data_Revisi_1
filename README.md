@@ -47,4 +47,4 @@ Follow the steps below to set up the project locally:
 Once the dependencies are installed, you can launch the dashboard with the following command:
 
 ```bash
-streamlit run dashboard.py
+streamlit run Dashboard_Revisi1/Dashboard_Revisi1.py
