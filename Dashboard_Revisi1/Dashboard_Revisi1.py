@@ -3,6 +3,7 @@ import pandas as pd
 import matplotlib.pyplot as plt
 import seaborn as sns
 import streamlit as st
+import numpy as np
 
 # Mengatur gaya visual seaborn
 sns.set(style='dark')
@@ -126,21 +127,39 @@ st.pyplot(fig)
 
 #--- RFM Analysis Visualization
 st.subheader("Analisis RFM Pelanggan :bar_chart:")
-# Menghitung RFM
-snapshot_date = day_df['dteday'].max() + pd.Timedelta(days=1)  # tanggal snapshot
+
+# Pastikan day_df memiliki kolom 'user_id' dan 'dteday'
+# Jika belum ada, buat data dummy untuk user_id
+day_df['user_id'] = np.random.randint(1, 1000, size=len(day_df))  # Contoh penambahan user_id
+
+# Menghitung Recency
+current_date = day_df['dteday'].max()  # Tanggal terakhir dalam dataset
 rfm_df = day_df.groupby('user_id').agg({
-    'dteday': lambda x: (snapshot_date - x.max()).days,
-    'cnt': ['count', 'sum']
+    'dteday': lambda x: (current_date - x.max()).days,  # Recency
+    'cnt': ['count', 'sum']  # Frequency dan Monetary
 }).reset_index()
+
+# Mengganti nama kolom
 rfm_df.columns = ['user_id', 'Recency', 'Frequency', 'Monetary']
 
-# Mengelompokkan pelanggan berdasarkan RFM
-def rfm_segment(df):
-    if df['Recency'] <= 30 and df['Frequency'] > 10:
+# Menghitung nilai RFM
+# Mengelompokkan pengguna berdasarkan kriteria tertentu, misalnya:
+quantiles = rfm_df[['Recency', 'Frequency', 'Monetary']].quantile(q=[0.25, 0.5, 0.75]).to_dict()
+def rfm_score(row):
+    r_score = 1 if row['Recency'] <= quantiles['Recency'][0.25] else 3 if row['Recency'] <= quantiles['Recency'][0.5] else 5
+    f_score = 5 if row['Frequency'] >= quantiles['Frequency'][0.75] else 3 if row['Frequency'] >= quantiles['Frequency'][0.5] else 1
+    m_score = 5 if row['Monetary'] >= quantiles['Monetary'][0.75] else 3 if row['Monetary'] >= quantiles['Monetary'][0.5] else 1
+    return r_score + f_score + m_score
+
+rfm_df['RFM_Score'] = rfm_df.apply(rfm_score, axis=1)
+
+# Mengelompokkan pengguna
+def rfm_segment(row):
+    if row['RFM_Score'] >= 10:
         return 'Best Customers'
-    elif df['Recency'] <= 30 and df['Frequency'] <= 10:
+    elif row['RFM_Score'] >= 8:
         return 'Loyal Customers'
-    elif df['Recency'] > 30 and df['Frequency'] > 10:
+    elif row['RFM_Score'] >= 6:
         return 'Potential Customers'
     else:
         return 'At Risk'
@@ -148,14 +167,19 @@ def rfm_segment(df):
 rfm_df['Segment'] = rfm_df.apply(rfm_segment, axis=1)
 
 # Barplot untuk Jumlah Pelanggan di Setiap Segmen RFM
-fig, ax = plt.subplots(figsize=(10, 6))
+# Membuat barplot
+# Menghitung jumlah pelanggan di setiap segmen
 segment_counts = rfm_df['Segment'].value_counts().reset_index()
 segment_counts.columns = ['Segment', 'Count']
+
+# Membuat barplot
+fig = plt.figure(figsize=(10, 6))
 sns.barplot(x='Segment', y='Count', data=segment_counts, palette='viridis')
 plt.title('Jumlah Pelanggan di Setiap Segmen RFM', fontsize=15)
 plt.xlabel('Segmen', fontsize=12)
 plt.ylabel('Jumlah Pelanggan', fontsize=12)
 plt.xticks(rotation=45)
+plt.show()
 st.pyplot(fig)
 
 # Scatter Plot untuk Frequency dan Monetary
