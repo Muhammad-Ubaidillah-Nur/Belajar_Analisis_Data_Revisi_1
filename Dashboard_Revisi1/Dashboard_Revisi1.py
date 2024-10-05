@@ -22,7 +22,7 @@ def analisis_berdasarkan_cuaca(df):  # Fungsi untuk menganalisis data berdasarka
     return cuaca_analisis
 
 #--- Memuat data dari file CSV
-day_df = pd.read_csv(r"Dashboard_Revisi1\day_data.csv")
+day_df = pd.read_csv(r"Dashboard_Revisi1/day_data.csv")
 
 #--- Menggunakan fungsi untuk menghasilkan analisis
 favorit_season = analisis_rental_musim(day_df)
@@ -131,6 +131,7 @@ st.subheader("Analisis RFM Pelanggan :bar_chart:")
 # Pastikan day_df memiliki kolom 'user_id' dan 'dteday'
 # Jika belum ada, buat data dummy untuk user_id
 day_df['user_id'] = np.random.randint(1, 1000, size=len(day_df))  # Contoh penambahan user_id
+day_df['dteday'] = pd.to_datetime(day_df['dteday'])
 
 # Menghitung Recency
 current_date = day_df['dteday'].max()  # Tanggal terakhir dalam dataset
